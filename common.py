@@ -26,5 +26,11 @@ tile13_coord = (966+GAP*1, 616+GAP*3, 1189+GAP*1, 849+GAP*3)
 tile14_coord = (966+GAP*2, 616+GAP*3, 1189+GAP*2, 849+GAP*3)
 tile15_coord = (966+GAP*3, 616+GAP*3, 1189+GAP*3, 849+GAP*3)
 
+coord_list = [tile0_coord, tile1_coord, tile2_coord, tile3_coord,
+              tile4_coord, tile5_coord, tile6_coord, tile7_coord,
+              tile8_coord, tile9_coord, tile10_coord, tile11_coord,
+              tile12_coord, tile13_coord, tile14_coord, tile15_coord]
+board = []
+
 
 
