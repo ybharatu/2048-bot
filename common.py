@@ -30,7 +30,15 @@ coord_list = [tile0_coord, tile1_coord, tile2_coord, tile3_coord,
               tile4_coord, tile5_coord, tile6_coord, tile7_coord,
               tile8_coord, tile9_coord, tile10_coord, tile11_coord,
               tile12_coord, tile13_coord, tile14_coord, tile15_coord]
-board = []
+board = [0]*16
 
+#################################################################
+# Useful Values
+#################################################################
+UP = 500
+DOWN = 501
+RIGHT = 502
+LEFT = 503
 
-
+valid_dirs = [UP, DOWN, RIGHT, LEFT]
+valid_dirs_weights = [1, 40, 40, 19]

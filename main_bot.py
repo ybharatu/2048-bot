@@ -13,6 +13,8 @@ import pytesseract
 import colorthief
 import cv2
 import numpy
+import random
+import keyboard
 
 
 pyautogui.FAILSAFE = True
@@ -23,21 +25,31 @@ pyautogui.PAUSE = 2.5
 #################################################################
 
 def main():
-
+    global valid_dirs_weights
+    global valid_dirs
     #################################################################
     # Lets me switch screens to 2048
     #################################################################
     time.sleep(1)
 
-    #################################################################
-    # Gets a screenshot and populates the values of the board
-    #################################################################
-    screencap_board()
+    while True:
 
-    #################################################################
-    # Print's the value of the board to the terminal
-    #################################################################
-    print_board()
+        #################################################################
+        # Gets a screenshot and populates the values of the board
+        #################################################################
+        screencap_board()
+
+        #################################################################
+        # Print's the value of the board to the terminal
+        #################################################################
+        print_board()
+
+        direction = get_weighted_direction_move()
+
+        make_move(direction)
+
+        valid_dirs_weights = [1, 40, 40, 19]
+        valid_dirs = [UP, DOWN, RIGHT, LEFT]
 
 #################################################################
 # Takes a screen shot and sets up the board
@@ -68,7 +80,7 @@ def screencap_board():
     # Debug Function, that shows the image with all the cropped
     # tiles stitched together.
     #################################################################
-    display_board_img(im_list)
+    #display_board_img(im_list)
 
 
 #################################################################
@@ -104,7 +116,7 @@ def get_values_by_number(screenshot):
         im_list[i] = im_pil
         t_value = pytesseract.image_to_string(im_list[i], config=custom_config).strip()
         if t_value.isnumeric():
-            board.append(t_value)
+            board[i] = t_value
         else:
             np_image = numpy.array(im_list[i])
             invert = numpy.invert(np_image)
@@ -112,9 +124,12 @@ def get_values_by_number(screenshot):
             t_value = pytesseract.image_to_string(pil_image, config=custom_config).strip()
             if t_value.isnumeric():
                 im_list[i] = pil_image
-                board.append(t_value)
+                board[i] = t_value
             else:
-                board.append("-")
+                board[i] = "-"
+
+    # print("DEBUG: Get_values_by_number()")
+    # print(board)
 
     return im_list
 
@@ -166,6 +181,102 @@ def display_board_img(im_list):
     final_image.paste(four_img[2], (0, 2 * four_img[1].size[1]))
     final_image.paste(four_img[3], (0, 3 * four_img[1].size[1]))
     final_image.show()
+
+#################################################################
+# Swipes the screen to the given direction
+#################################################################
+def make_move (direction):
+    if direction == UP:
+        print("Swiping UP")
+        pyautogui.press("up")
+    elif direction == DOWN:
+        print("Swiping DOWN")
+        pyautogui.press("down")
+    elif direction == RIGHT:
+        print("Swiping RIGHT")
+        pyautogui.press("right")
+    elif direction == LEFT:
+        print("Swiping LEFT")
+        pyautogui.press("left")
+    else:
+        print("Uh oh, direction cannot be: " + str(direction))
+        exit()
+
+#################################################################
+# Weighted Direction moving. Tries to keep max value in bottom
+# right, by using random number generation
+#################################################################
+def get_weighted_direction_move():
+    valid = False
+    while not valid:
+        direction = random.choices(valid_dirs, weights=valid_dirs_weights, k=1)[0]
+
+        valid = check_direction(direction)
+
+    return direction
+
+#################################################################
+# Random direction moving
+#################################################################
+def check_direction(direction):
+
+    if direction == UP:
+        for i in range(15, 4, -1):
+            if (board[i] != "-" and board[i-4] == "-") or (board[i] != "-" and board[i] == board[i-4]):
+                return True
+        remove_dir = valid_dirs.index(UP)
+        valid_dirs.pop(remove_dir)
+        valid_dirs_weights.pop(remove_dir)
+        print("Can't go UP")
+        return False
+    if direction == DOWN:
+        for i in range(0, 11, 1):
+            if (board[i] != "-" and board[i+4] == "-") or (board[i] != "-" and board[i] == board[i+4]):
+                return True
+        remove_dir = valid_dirs.index(DOWN)
+        valid_dirs.pop(remove_dir)
+        valid_dirs_weights.pop(remove_dir)
+        print("Can't go DOWN")
+        return False
+    if direction == RIGHT:
+        for i in range(0, 15, 1):
+            if i == 3 or i == 7 or i == 11 or i == 15:
+                continue
+            if (board[i] != "-" and board[i+1] == "-") or (board[i] != "-" and board[i] == board[i+1]):
+                return True
+        remove_dir = valid_dirs.index(RIGHT)
+        valid_dirs.pop(remove_dir)
+        valid_dirs_weights.pop(remove_dir)
+        print("Can't go RIGHT")
+        return False
+    if direction == LEFT:
+        for i in range(0, 15, 1):
+            if i == 0 or i == 4 or i == 8 or i == 12:
+                continue
+            if (board[i] != "-" and board[i-1] == "-") or (board[i] != "-" and board[i] == board[i-1]):
+                return True
+        remove_dir = valid_dirs.index(LEFT)
+        valid_dirs.pop(remove_dir)
+        valid_dirs_weights.pop(remove_dir)
+        print("Can't go LEFT")
+        return False
+
+    print("Really hope you don't see this message: " + str(direction) + " is not a direction")
+    exit()
+
+
+
+
+
+#################################################################
+# Random direction moving
+#################################################################
+def get_random_direction_move():
+    rand_value = random.randrange(4)
+
+    direction = valid_dirs[rand_value]
+
+    return direction
 
 #################################################################
 # Wrapper for Main
