@@ -7,12 +7,13 @@ import sys
 import pyautogui
 from PIL import ImageGrab, ImageOps, Image
 from common import *
+from matrix_functions import *
 import time
 # Need to do: brew install tesseract
 import pytesseract
 import colorthief
 import cv2
-import numpy
+import numpy as np
 import random
 import keyboard
 
@@ -25,14 +26,14 @@ pyautogui.PAUSE = 2.5
 #################################################################
 
 def main():
-    global valid_dirs_weights
-    global valid_dirs
+    #global valid_dirs_weights
+    #global valid_dirs
     #################################################################
     # Lets me switch screens to 2048
     #################################################################
     time.sleep(1)
-
-    while True:
+    valid = 0
+    while not valid:
 
         #################################################################
         # Gets a screenshot and populates the values of the board
@@ -43,18 +44,18 @@ def main():
         # Print's the value of the board to the terminal
         #################################################################
         print_board()
-
-        direction = get_weighted_direction_move()
+        direction = get_heuristic_move()
+        #valid = 1
+        #direction = get_weighted_direction_move()
 
         make_move(direction)
 
-        valid_dirs_weights = [1, 40, 40, 19]
-        valid_dirs = [UP, DOWN, RIGHT, LEFT]
+        #valid_dirs_weights = [1, 40, 40, 19]
+        #valid_dirs = [UP, DOWN, RIGHT, LEFT]
 
 #################################################################
 # Takes a screen shot and sets up the board
 #################################################################
-
 def screencap_board():
 
     #################################################################
@@ -108,18 +109,17 @@ def get_values_by_number(screenshot):
     #################################################################
     for i in range(16):
         im_list.append(screenshot.crop(coord_list[i]))
-        np_image = numpy.array(im_list[i])
+        np_image = np.array(im_list[i])
         blur = cv2.GaussianBlur(np_image, (5, 5), 0)
         ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        #th3 = cv2.adaptiveThreshold(numpy.array(im_list[i]), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
         im_pil = Image.fromarray(th3)
         im_list[i] = im_pil
         t_value = pytesseract.image_to_string(im_list[i], config=custom_config).strip()
         if t_value.isnumeric():
             board[i] = t_value
         else:
-            np_image = numpy.array(im_list[i])
-            invert = numpy.invert(np_image)
+            np_image = np.array(im_list[i])
+            invert = np.invert(np_image)
             pil_image = Image.fromarray(invert)
             t_value = pytesseract.image_to_string(pil_image, config=custom_config).strip()
             if t_value.isnumeric():
@@ -142,8 +142,6 @@ def print_board():
     print(board[4] + " " + board[5] + " " + board[6] + " " + board[7])
     print(board[8] + " " + board[9] + " " + board[10] + " " + board[11])
     print(board[12] + " " + board[13] + " " + board[14] + " " + board[15])
-
-
 
 #################################################################
 # Merge all pictures to show the board (Verification Function)
@@ -185,7 +183,7 @@ def display_board_img(im_list):
 #################################################################
 # Swipes the screen to the given direction
 #################################################################
-def make_move (direction):
+def make_move(direction):
     if direction == UP:
         print("Swiping UP")
         pyautogui.press("up")
@@ -203,6 +201,79 @@ def make_move (direction):
         exit()
 
 #################################################################
+# Heuristic Based Decision making. Listed a variety of factors
+# and the bot should try to optimize using these heuristics
+#################################################################
+def get_heuristic_move():
+    max_score = -1
+    max_direction = DOWN
+
+    up_board, changed_up = calc_next_board(UP)
+    down_board, changed_down = calc_next_board(DOWN)
+    right_board, changed_right = calc_next_board(RIGHT)
+    left_board, changed_left = calc_next_board(LEFT)
+
+    if changed_down:
+        down_score = calc_tile_heuristic_score(down_board)
+        if down_score > max_score:
+            max_score = down_score
+            max_direction = DOWN
+    if changed_up:
+        up_score = calc_tile_heuristic_score(up_board)
+        if up_score > max_score:
+            max_score = up_score
+            max_direction = UP
+    if changed_right:
+        right_score = calc_tile_heuristic_score(right_board)
+        if right_score > max_score:
+            max_score = right_score
+            max_direction = RIGHT
+    if changed_left:
+        left_score = calc_tile_heuristic_score(left_board)
+        if left_score > max_score:
+            max_score = left_score
+            max_direction = LEFT
+
+    return max_direction
+
+
+#################################################################
+# Calculates the board given a direction
+#################################################################
+def calc_tile_heuristic_score(temp_board):
+    score = 0
+    new_board = np.reshape(temp_board, (16,))
+    for i in range(16):
+        if new_board[i] != "-":
+            score += tile_heuristic_grid[i] * int(new_board[i])
+
+    return score
+
+#################################################################
+# Calculates the board given a direction
+#################################################################
+def calc_next_board(direction):
+
+    temp_board = np.array(board)
+    temp_board = np.reshape(temp_board, (4, 4))
+
+    if direction == UP:
+        new_board, changed = move_up(temp_board)
+    elif direction == RIGHT:
+        new_board, changed = move_right(temp_board)
+    elif direction == LEFT:
+        new_board, changed = move_left(temp_board)
+    elif direction == DOWN:
+        new_board, changed = move_down(temp_board)
+    else:
+        print("calc_next_board messed up")
+        return False
+
+    return new_board, changed
+
+
+
+#################################################################
 # Weighted Direction moving. Tries to keep max value in bottom
 # right, by using random number generation
 #################################################################
@@ -216,7 +287,7 @@ def get_weighted_direction_move():
     return direction
 
 #################################################################
-# Random direction moving
+# Verifies if the direction is valid
 #################################################################
 def check_direction(direction):
 
@@ -263,10 +334,6 @@ def check_direction(direction):
 
     print("Really hope you don't see this message: " + str(direction) + " is not a direction")
     exit()
-
-
-
-
 
 #################################################################
 # Random direction moving
