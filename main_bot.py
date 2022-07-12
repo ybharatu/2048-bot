@@ -16,10 +16,10 @@ import cv2
 import numpy as np
 import random
 import keyboard
+import timeit
 
-
-pyautogui.FAILSAFE = True
-pyautogui.PAUSE = 2.5
+pyautogui.FAILSAFE = False
+pyautogui.PAUSE = .1
 
 #################################################################
 # Main Function
@@ -38,14 +38,15 @@ def main():
         #################################################################
         # Gets a screenshot and populates the values of the board
         #################################################################
+        start = timeit.default_timer()
         screencap_board()
+        stop = timeit.default_timer()
+        print("Screencap_board() takes: ", stop - start)
 
         #################################################################
         # Print's the value of the board to the terminal
         #################################################################
-        print_board()
         direction = get_heuristic_move()
-        #valid = 1
         #direction = get_weighted_direction_move()
 
         make_move(direction)
@@ -234,11 +235,19 @@ def get_heuristic_move():
             max_score = left_score
             max_direction = LEFT
 
+    if not changed_down and not changed_up and not changed_right and not changed_left:
+        print("Game over. Can't do anything")
+        exit()
+
     return max_direction
 
 
 #################################################################
 # Calculates the board given a direction
+#################################################################
+
+#################################################################
+# Calculates heuristic score based on tile position
 #################################################################
 def calc_tile_heuristic_score(temp_board):
     score = 0
@@ -270,8 +279,6 @@ def calc_next_board(direction):
         return False
 
     return new_board, changed
-
-
 
 #################################################################
 # Weighted Direction moving. Tries to keep max value in bottom
