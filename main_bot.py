@@ -11,11 +11,9 @@ from matrix_functions import *
 import time
 # Need to do: brew install tesseract
 import pytesseract
-import colorthief
 import cv2
 import numpy as np
 import random
-import keyboard
 import timeit
 
 pyautogui.FAILSAFE = False
@@ -38,18 +36,19 @@ def main():
         #################################################################
         # Gets a screenshot and populates the values of the board
         #################################################################
-        start = timeit.default_timer()
         screencap_board()
-        stop = timeit.default_timer()
-        print("Screencap_board() takes: ", stop - start)
 
         #################################################################
-        # Print's the value of the board to the terminal
+        # Get's the direction for the next move
         #################################################################
         direction = get_heuristic_move()
         #direction = get_weighted_direction_move()
 
+        #################################################################
+        # Emulates the keyboard press to make the move
+        #################################################################
         make_move(direction)
+
 
         #valid_dirs_weights = [1, 40, 40, 19]
         #valid_dirs = [UP, DOWN, RIGHT, LEFT]
@@ -84,7 +83,6 @@ def screencap_board():
     #################################################################
     #display_board_img(im_list)
 
-
 #################################################################
 # Obtain values based on reading the number
 #################################################################
@@ -108,18 +106,18 @@ def get_values_by_number(screenshot):
     # If the number cannot be read, tries the same steps, but
     # inverts the image
     #################################################################
-    for i in range(16):
+    for i in range(NUM_TILES):
         im_list.append(screenshot.crop(coord_list[i]))
         np_image = np.array(im_list[i])
         blur = cv2.GaussianBlur(np_image, (5, 5), 0)
         ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         im_pil = Image.fromarray(th3)
-        im_list[i] = im_pil
-        t_value = pytesseract.image_to_string(im_list[i], config=custom_config).strip()
+        t_value = pytesseract.image_to_string(im_pil, config=custom_config).strip()
         if t_value.isnumeric():
+            im_list[i] = im_pil
             board[i] = t_value
         else:
-            np_image = np.array(im_list[i])
+            np_image = np.array(im_pil)
             invert = np.invert(np_image)
             pil_image = Image.fromarray(invert)
             t_value = pytesseract.image_to_string(pil_image, config=custom_config).strip()
@@ -140,9 +138,14 @@ def get_values_by_number(screenshot):
 def print_board():
 
     print(board[0] + " " + board[1] + " " + board[2] + " " + board[3])
+    debug_log(board[0] + " " + board[1] + " " + board[2] + " " + board[3] + "\n", DEBUG)
     print(board[4] + " " + board[5] + " " + board[6] + " " + board[7])
+    debug_log(board[4] + " " + board[5] + " " + board[6] + " " + board[7] + "\n", DEBUG)
     print(board[8] + " " + board[9] + " " + board[10] + " " + board[11])
+    debug_log(board[8] + " " + board[9] + " " + board[10] + " " + board[11] + "\n", DEBUG)
     print(board[12] + " " + board[13] + " " + board[14] + " " + board[15])
+    debug_log(board[12] + " " + board[13] + " " + board[14] + " " + board[15] + "\n", DEBUG)
+    debug_log("-----------------\n", DEBUG)
 
 #################################################################
 # Merge all pictures to show the board (Verification Function)
@@ -209,42 +212,87 @@ def get_heuristic_move():
     max_score = -1
     max_direction = DOWN
 
+    # TODO: Can do all the np.reshapes up here to save some time?
     up_board, changed_up = calc_next_board(UP)
     down_board, changed_down = calc_next_board(DOWN)
     right_board, changed_right = calc_next_board(RIGHT)
     left_board, changed_left = calc_next_board(LEFT)
 
     if changed_down:
-        down_score = calc_tile_heuristic_score(down_board)
+        down_score = calc_total_score(down_board)
+        print("Down Score: " + str(down_score))
+        debug_log("Down Score: " + str(down_score) + "\n", DEBUG)
         if down_score > max_score:
             max_score = down_score
             max_direction = DOWN
+    else:
+        print("Can't go Down")
+        debug_log("Can't go Down\n", DEBUG)
     if changed_up:
-        up_score = calc_tile_heuristic_score(up_board)
+        up_score = calc_total_score(up_board)
+        up_score += UPSCORE_PENALTY
+        print("Up Score: " + str(up_score))
+        debug_log("Up Score: " + str(up_score) + "\n", DEBUG)
         if up_score > max_score:
             max_score = up_score
             max_direction = UP
+    else:
+        print("Can't go Up")
+        debug_log("Can't go Up\n", DEBUG)
     if changed_right:
-        right_score = calc_tile_heuristic_score(right_board)
+        right_score = calc_total_score(right_board)
+        print("Right Score: " + str(right_score))
+        debug_log("Right Score: " + str(right_score) + "\n", DEBUG)
         if right_score > max_score:
             max_score = right_score
             max_direction = RIGHT
+    else:
+        print("Can't go Right")
+        debug_log("Can't go Right\n", DEBUG)
     if changed_left:
-        left_score = calc_tile_heuristic_score(left_board)
+        left_score = calc_total_score(left_board)
+        print("Left Score: " + str(left_score))
+        debug_log("Left Score: " + str(left_score) + "\n", DEBUG)
         if left_score > max_score:
             max_score = left_score
             max_direction = LEFT
+    else:
+        print("Can't go Left")
+        debug_log("Can't go Left\n", DEBUG)
 
     if not changed_down and not changed_up and not changed_right and not changed_left:
         print("Game over. Can't do anything")
+        debug_log("Game over. Can't do anything", DEBUG)
         exit()
 
+    print_board()
     return max_direction
-
 
 #################################################################
 # Calculates the board given a direction
 #################################################################
+def calc_max_value_score(temp_board):
+    max_tile = max_value(temp_board)
+    new_board = np.reshape(temp_board, (16,))
+
+    if new_board[15] == str(max_tile):
+        return 10000
+    else:
+        return -10000
+
+#################################################################
+# Finds max value of the board
+#################################################################
+def max_value(temp_board):
+    max_tile = -1
+    new_board = np.reshape(temp_board, (16,))
+
+    for i in range(16):
+        if new_board[i] != "-":
+            if max_tile < int(new_board[i]):
+                max_tile = int(new_board[i])
+
+    return max_tile
 
 #################################################################
 # Calculates heuristic score based on tile position
@@ -257,6 +305,69 @@ def calc_tile_heuristic_score(temp_board):
             score += tile_heuristic_grid[i] * int(new_board[i])
 
     return score
+
+#################################################################
+# Calculates heuristic score based on number of empty tiles
+#################################################################
+def calc_empty_tile_score(temp_board):
+    zeros = 0
+    new_board = np.reshape(temp_board, (16,))
+
+    for i in range(16):
+        if new_board[i] == "-":
+            zeros += 1
+
+    return zeros*500
+
+#################################################################
+# Calculates heuristic score based on Monotonicity
+#################################################################
+def calc_monotonicity_score(temp_board):
+
+    row_score = 0
+    col_score = [0, 0]
+    #################################################################
+    # Checks monotonicity for rows
+    #################################################################
+    for i in range(4):
+        for j in range(4):
+            if temp_board[i][j] == "-" or j == 3 or temp_board[i][j+1] == "-":
+                continue
+            # if first row or third row
+            if i == 0 or i == 2:
+                #if int(temp_board[i][j]) > int(temp_board[i][j+1]):
+                row_score += int(temp_board[i][j]) - int(temp_board[i][j+1])
+            # if second or last row
+            if i == 1 or i == 3:
+                #if int(temp_board[i][j+1]) > int(temp_board[i][j]):
+                row_score += int(temp_board[i][j+1]) - int(temp_board[i][j])
+
+    return row_score * 100
+
+#################################################################
+# Calculates Smoothness (similar value tiles)
+#################################################################
+
+
+#################################################################
+# Calculates the score given a state of the board
+#################################################################
+def calc_total_score(temp_board):
+
+    total_score = calc_tile_heuristic_score(temp_board)
+    total_score += calc_max_value_score(temp_board)
+    total_score += calc_empty_tile_score(temp_board)
+    total_score += calc_monotonicity_score(temp_board)
+
+    return total_score
+
+#################################################################
+# Debug log function
+#################################################################
+def debug_log(message, enable):
+    if enable:
+        with open(DEBUG_FILE,"a") as f:
+            f.write(message)
 
 #################################################################
 # Calculates the board given a direction
@@ -355,7 +466,6 @@ def get_random_direction_move():
 #################################################################
 # Wrapper for Main
 #################################################################
-
 if __name__ == "__main__":
    #main(sys.argv[1:])
     main()
