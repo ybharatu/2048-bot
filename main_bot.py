@@ -38,6 +38,8 @@ def main():
         #################################################################
         screencap_board()
 
+        print_board()
+
         #################################################################
         # Get's the direction for the next move
         #################################################################
@@ -48,6 +50,8 @@ def main():
         # Emulates the keyboard press to make the move
         #################################################################
         make_move(direction)
+
+        time.sleep(.5)
 
 
         #valid_dirs_weights = [1, 40, 40, 19]
@@ -75,7 +79,9 @@ def screencap_board():
     # Takes the image and crops each individual tile into an array.
     # Also populates the board with values
     #################################################################
-    im_list = get_values_by_number(grayscaled)
+    #im_list = get_values_by_number(grayscaled)
+
+    im_list = get_values_by_color(grayscaled)
 
     #################################################################
     # Debug Function, that shows the image with all the cropped
@@ -108,6 +114,9 @@ def get_values_by_number(screenshot):
     #################################################################
     for i in range(NUM_TILES):
         im_list.append(screenshot.crop(coord_list[i]))
+        # if i == 14:
+        #     pix = im_list[i].load()
+        #     print(pix[30,30])
         np_image = np.array(im_list[i])
         blur = cv2.GaussianBlur(np_image, (5, 5), 0)
         ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -129,6 +138,50 @@ def get_values_by_number(screenshot):
 
     # print("DEBUG: Get_values_by_number()")
     # print(board)
+
+    return im_list
+
+#################################################################
+# Obtain values based on reading the number
+#################################################################
+def get_values_by_color(screenshot):
+    im_list = []
+
+    for i in range(NUM_TILES):
+        im_list.append(screenshot.crop(coord_list[i]))
+        pix = im_list[i].load()
+
+        if pix[30,30] == c_blank:
+            board[i] = "-"
+        elif pix[30,30] == c_2:
+            board[i] = "2"
+        elif pix[30,30] == c_4:
+            board[i] = "4"
+        elif pix[30,30] == c_8:
+            board[i] = "8"
+        elif pix[30,30] == c_16:
+            board[i] = "16"
+        elif pix[30,30] == c_32:
+            board[i] = "32"
+        elif pix[30,30] == c_64:
+            board[i] = "64"
+        elif pix[30,30] == c_128:
+            board[i] = "128"
+        elif pix[30,30] == c_256:
+            board[i] = "256"
+        elif pix[30,30] == c_512:
+            board[i] = "512"
+        elif pix[30,30] == c_1024:
+            board[i] = "1024"
+        elif pix[30,30] == c_2048:
+            board[i] = "2048"
+        # elif c_1024 - 2 <= pix[30, 30] <= c_1024 + 2:
+        #     board[i] = "1024"
+        # elif c_2048 - 2 <= pix[30, 30] <= c_2048 + 2:
+        #     board[i] = "2048"
+        else:
+            board[i] = "-"
+            print("Invalid value!")
 
     return im_list
 
@@ -190,15 +243,19 @@ def display_board_img(im_list):
 def make_move(direction):
     if direction == UP:
         print("Swiping UP")
+        debug_log("Swiping UP\n", DEBUG)
         pyautogui.press("up")
     elif direction == DOWN:
         print("Swiping DOWN")
+        debug_log("Swiping DOWN\n", DEBUG)
         pyautogui.press("down")
     elif direction == RIGHT:
         print("Swiping RIGHT")
+        debug_log("Swiping RIGHT\n", DEBUG)
         pyautogui.press("right")
     elif direction == LEFT:
         print("Swiping LEFT")
+        debug_log("Swiping LEFT\n", DEBUG)
         pyautogui.press("left")
     else:
         print("Uh oh, direction cannot be: " + str(direction))
@@ -209,7 +266,7 @@ def make_move(direction):
 # and the bot should try to optimize using these heuristics
 #################################################################
 def get_heuristic_move():
-    max_score = -1
+    max_score = -sys.maxsize - 1
     max_direction = DOWN
 
     # TODO: Can do all the np.reshapes up here to save some time?
@@ -265,7 +322,7 @@ def get_heuristic_move():
         debug_log("Game over. Can't do anything", DEBUG)
         exit()
 
-    print_board()
+    #print_board()
     return max_direction
 
 #################################################################
@@ -276,9 +333,9 @@ def calc_max_value_score(temp_board):
     new_board = np.reshape(temp_board, (16,))
 
     if new_board[15] == str(max_tile):
-        return 10000
+        return 1000000
     else:
-        return -10000
+        return -1000000
 
 #################################################################
 # Finds max value of the board
@@ -317,7 +374,7 @@ def calc_empty_tile_score(temp_board):
         if new_board[i] == "-":
             zeros += 1
 
-    return zeros*500
+    return zeros*10000
 
 #################################################################
 # Calculates heuristic score based on Monotonicity
@@ -325,7 +382,6 @@ def calc_empty_tile_score(temp_board):
 def calc_monotonicity_score(temp_board):
 
     row_score = 0
-    col_score = [0, 0]
     #################################################################
     # Checks monotonicity for rows
     #################################################################
@@ -347,7 +403,41 @@ def calc_monotonicity_score(temp_board):
 #################################################################
 # Calculates Smoothness (similar value tiles)
 #################################################################
+def calc_smoothness_score(temp_board):
+    raw_score = 0
+    #print(temp_board)
 
+    #################################################################
+    # Checks smoothness by comparing all adjacent value positions
+    #################################################################
+    for i in range(4):
+        for j in range(4):
+            #print(" i: " + str(i) + " j: " + str(j))
+            if temp_board[i][j] != "-":
+
+                value = temp_board[i][j]
+                # Check right position
+                if j != 3:
+                    if value == temp_board[i][j+1]:
+                        raw_score += int(value) * 100
+                        #print("Right is the same: " + value + " i: " + str(i) + " j: " + str(j))
+                # Check left position
+                if j != 0:
+                    if value == temp_board[i][j-1]:
+                        raw_score += int(value) * 100
+                        #print("Left is the same: " + value)
+                # Check up position
+                if i != 0:
+                    if value == temp_board[i-1][j]:
+                        raw_score += int(value) * 100
+                        #print("Up is the same: " + value)
+                # Check down position
+                if i != 3:
+                    if value == temp_board[i+1][j]:
+                        raw_score += int(value) * 100
+                        #print("Down is the same: " + value)
+
+    return raw_score
 
 #################################################################
 # Calculates the score given a state of the board
@@ -355,9 +445,13 @@ def calc_monotonicity_score(temp_board):
 def calc_total_score(temp_board):
 
     total_score = calc_tile_heuristic_score(temp_board)
+    #print("Tile score: " + str(calc_tile_heuristic_score(temp_board)))
     total_score += calc_max_value_score(temp_board)
-    total_score += calc_empty_tile_score(temp_board)
+    #print("Max Value Score: " + str(calc_max_value_score(temp_board)))
+    #total_score += calc_empty_tile_score(temp_board)
     total_score += calc_monotonicity_score(temp_board)
+    total_score += calc_smoothness_score(temp_board)
+    #print("Smoothness Score: " + str(calc_smoothness_score(temp_board)))
 
     return total_score
 

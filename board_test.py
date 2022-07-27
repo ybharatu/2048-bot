@@ -1,10 +1,12 @@
 import numpy as np
 from matrix_functions import *
+from main_bot import *
+from common import *
 
-board = ['-', '-', '2', '2',
-              '-', '-', '-', '-',
-              '-', '8', '32', '8',
-              '2', '8', '4', '2']
+# board = ['-', '-', '2', '2',
+#               '-', '-', '-', '-',
+#               '-', '8', '32', '8',
+#               '2', '8', '4', '2']
 
 UP = 500
 DOWN = 501
@@ -107,9 +109,9 @@ def print_board():
     print(board[12] + " " + board[13] + " " + board[14] + " " + board[15])
 
 if __name__ == "__main__":
-    calc_next_board(UP)
-    calc_next_board(RIGHT)
-    calc_next_board(LEFT)
-    calc_next_board(DOWN)
-    #print_board()
+
+
+    direction = get_heuristic_move()
+    print(direction)
+    print_board()
 
