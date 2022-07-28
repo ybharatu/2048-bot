@@ -151,6 +151,9 @@ def get_values_by_color(screenshot):
         im_list.append(screenshot.crop(coord_list[i]))
         pix = im_list[i].load()
 
+        # if i == 15:
+        #     print(pix[30,30])
+
         if pix[30,30] == c_blank:
             board[i] = "-"
         elif pix[30,30] == c_2:
