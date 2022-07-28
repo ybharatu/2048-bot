@@ -451,7 +451,7 @@ def calc_total_score(temp_board):
     #print("Tile score: " + str(calc_tile_heuristic_score(temp_board)))
     total_score += calc_max_value_score(temp_board)
     #print("Max Value Score: " + str(calc_max_value_score(temp_board)))
-    #total_score += calc_empty_tile_score(temp_board)
+    total_score += calc_empty_tile_score(temp_board)
     total_score += calc_monotonicity_score(temp_board)
     total_score += calc_smoothness_score(temp_board)
     #print("Smoothness Score: " + str(calc_smoothness_score(temp_board)))
