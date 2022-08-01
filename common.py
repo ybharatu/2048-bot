@@ -20,7 +20,7 @@ tile7_coord = (966+GAP*3, 616+GAP*1, 1189+GAP*3, 849+GAP*1)
 tile8_coord = (966+GAP*0, 616+GAP*2, 1189+GAP*0, 849+GAP*2)
 tile9_coord = (966+GAP*1, 616+GAP*2, 1189+GAP*1, 849+GAP*2)
 tile10_coord = (966+GAP*2, 616+GAP*2, 1189+GAP*2, 849+GAP*2)
-tile11_coord = (966+GAP*3, 616+GAP*2, 1189+GAP*3, 849+GAP*2)
+tile11_coord = (966+GAP*3 + 10, 616+GAP*2 + 10, 1189+GAP*3, 849+GAP*2)
 tile12_coord = (966+GAP*0, 616+GAP*3, 1189+GAP*0, 849+GAP*3)
 tile13_coord = (966+GAP*1, 616+GAP*3, 1189+GAP*1, 849+GAP*3)
 tile14_coord = (966+GAP*2, 616+GAP*3, 1189+GAP*2, 849+GAP*3)
@@ -36,6 +36,8 @@ board = [0]*16
 #              '-', '8', '32', '8',
 #              '2', '8', '4', '2']
 
+MAX_DEPTH = 1
+LOW = -100000000000
 #################################################################
 # Color of each tile
 #################################################################
@@ -60,6 +62,7 @@ UP = 500
 DOWN = 501
 RIGHT = 502
 LEFT = 503
+INVALID = -500
 
 valid_dirs = [UP, DOWN, RIGHT, LEFT]
 valid_dirs_weights = [1, 40, 40, 19]

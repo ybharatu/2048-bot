@@ -116,7 +116,7 @@ def get_values_by_number(screenshot):
         im_list.append(screenshot.crop(coord_list[i]))
         # if i == 14:
         #     pix = im_list[i].load()
-        #     print(pix[30,30])
+        #     print(value)
         np_image = np.array(im_list[i])
         blur = cv2.GaussianBlur(np_image, (5, 5), 0)
         ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -150,33 +150,45 @@ def get_values_by_color(screenshot):
     for i in range(NUM_TILES):
         im_list.append(screenshot.crop(coord_list[i]))
         pix = im_list[i].load()
-
+        value = pix[40,40]
+# https://www.boxentriq.com/code-breaking/pixel-values-extractor
         # if i == 15:
-        #     print(pix[30,30])
+        #     print("Tile 15:")
+        #     print(value)
+        #     im_list[i].show()
+        # if i == 11:
+        #     print("Tile 11:")
+        #     print(value)
+        #     im_list[i].show()
+        # if i == 7:
+        #     print("Tile 7:")
+        #     print(value)
+        #     im_list[i].show()
 
-        if pix[30,30] == c_blank:
+
+        if value == c_blank:
             board[i] = "-"
-        elif pix[30,30] == c_2:
+        elif value == c_2:
             board[i] = "2"
-        elif pix[30,30] == c_4:
+        elif value == c_4:
             board[i] = "4"
-        elif pix[30,30] == c_8:
+        elif value == c_8:
             board[i] = "8"
-        elif pix[30,30] == c_16:
+        elif value == c_16:
             board[i] = "16"
-        elif pix[30,30] == c_32:
+        elif value == c_32:
             board[i] = "32"
-        elif pix[30,30] == c_64:
+        elif value == c_64:
             board[i] = "64"
-        elif pix[30,30] == c_128:
+        elif value == c_128:
             board[i] = "128"
-        elif pix[30,30] == c_256:
+        elif value == c_256:
             board[i] = "256"
-        elif pix[30,30] == c_512:
+        elif value == c_512:
             board[i] = "512"
-        elif pix[30,30] == c_1024:
+        elif value == c_1024:
             board[i] = "1024"
-        elif pix[30,30] == c_2048:
+        elif value == c_2048:
             board[i] = "2048"
         # elif c_1024 - 2 <= pix[30, 30] <= c_1024 + 2:
         #     board[i] = "1024"
@@ -385,6 +397,7 @@ def calc_empty_tile_score(temp_board):
 def calc_monotonicity_score(temp_board):
 
     row_score = 0
+    col_score = 0
     #################################################################
     # Checks monotonicity for rows
     #################################################################
@@ -400,8 +413,16 @@ def calc_monotonicity_score(temp_board):
             if i == 1 or i == 3:
                 #if int(temp_board[i][j+1]) > int(temp_board[i][j]):
                 row_score += int(temp_board[i][j+1]) - int(temp_board[i][j])
+    #################################################################
+    # Checks monotonicity for Columns
+    #################################################################
+    # for j in range(4):
+    #     for i in range(4):
+    #         if temp_board[i][j] == "-" or i == 3 or temp_board[i+1][j] == "-":
+    #             continue
+    #         col_score += int(temp_board[i+1][j]) - int(temp_board[i][j])
 
-    return row_score * 100
+    return row_score * 100 + col_score * 100
 
 #################################################################
 # Calculates Smoothness (similar value tiles)
@@ -489,6 +510,25 @@ def calc_next_board(direction):
     return new_board, changed
 
 #################################################################
+# Calculates the board given a direction and board
+#################################################################
+def calc_next_board_input(temp_board, direction):
+
+    if direction == UP:
+        new_board, changed = move_up(temp_board)
+    elif direction == RIGHT:
+        new_board, changed = move_right(temp_board)
+    elif direction == LEFT:
+        new_board, changed = move_left(temp_board)
+    elif direction == DOWN:
+        new_board, changed = move_down(temp_board)
+    else:
+        print("calc_next_board messed up")
+        return False
+
+    return new_board, changed
+
+#################################################################
 # Weighted Direction moving. Tries to keep max value in bottom
 # right, by using random number generation
 #################################################################
@@ -559,6 +599,71 @@ def get_random_direction_move():
     direction = valid_dirs[rand_value]
 
     return direction
+
+#################################################################
+# Minmax Tree Creation
+#################################################################
+def create_minmax_tree():
+    scores = [-100000000000] * MAX_DEPTH * 4 * 4
+    directions = [INVALID] * MAX_DEPTH * 4 * 4
+    temp_board = np.array(board)
+    temp_board = np.reshape(temp_board, (4, 4))
+    max_player = True
+    index = 0
+    max_scores = [0] * 4
+
+    scores, directions = get_minmax_move(temp_board, MAX_DEPTH, max_player, scores, directions, 0)
+
+    # UP Parent and all of it's children
+
+
+
+#################################################################
+# Minmax Tree Search
+#################################################################
+def get_minmax_move(temp_board, depth, max_player, scores, directions, index):
+    temp_score = scores[index]
+    temp_index = index
+    if depth == 0:
+        scores[index] = calc_total_score(temp_board)
+        return scores, directions
+
+    up_board, changed_up = calc_next_board_input(temp_board, UP)
+    down_board, changed_down = calc_next_board_input(temp_board, DOWN)
+    right_board, changed_right = calc_next_board_input(temp_board, RIGHT)
+    left_board, changed_left = calc_next_board_input(temp_board, LEFT)
+
+    if max_player:
+        if changed_up:
+            scores[temp_index] = max(temp_score, calc_total_score(up_board))
+            directions[temp_index] = UP
+        else:
+            scores[temp_index] = -100000000000
+            directions[temp_index] = INVALID
+        scores, directions = get_minmax_move(up_board, depth - 1, False, scores, directions, temp_index + 4)
+        if changed_down:
+            scores[temp_index+1] = max(temp_score, calc_total_score(down_board))
+            directions[temp_index+1] = DOWN
+        else:
+            scores[temp_index+1] = -100000000000
+            directions[temp_index+1] = INVALID
+        scores, directions = get_minmax_move(down_board, depth - 1, False, scores, directions, temp_index + 5)
+        if changed_left:
+            scores[temp_index+2] = max(temp_score, calc_total_score(left_board))
+            directions[temp_index+2] = LEFT
+        else:
+            scores[temp_index+2] = -100000000000
+            directions[temp_index+2] = INVALID
+        scores, directions = get_minmax_move(left_board, depth - 1, False, scores, directions, temp_index + 6)
+        if changed_right:
+            scores[temp_index+3] = max(temp_score, calc_total_score(right_board))
+            directions[temp_index+3] = RIGHT
+        else:
+            scores[temp_index+3] = -100000000000
+            directions[temp_index+3] = INVALID
+        scores, directions = get_minmax_move(right_board, depth - 1, False, scores, directions, temp_index + 7)
+
+    return scores, directions
 
 #################################################################
 # Wrapper for Main
