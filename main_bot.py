@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 import random
 import timeit
+from minmax_tree import *
 
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = .1
@@ -43,8 +44,9 @@ def main():
         #################################################################
         # Get's the direction for the next move
         #################################################################
-        direction = get_heuristic_move()
+        #direction = get_heuristic_move()
         #direction = get_weighted_direction_move()
+        direction = create_minmax_tree()
 
         #################################################################
         # Emulates the keyboard press to make the move
@@ -604,66 +606,87 @@ def get_random_direction_move():
 # Minmax Tree Creation
 #################################################################
 def create_minmax_tree():
-    scores = [-100000000000] * MAX_DEPTH * 4 * 4
-    directions = [INVALID] * MAX_DEPTH * 4 * 4
-    temp_board = np.array(board)
-    temp_board = np.reshape(temp_board, (4, 4))
+    root = None
+    tree = MinmaxTree()
+    root = tree.insert_node(root, board)
     max_player = True
-    index = 0
-    max_scores = [0] * 4
 
-    scores, directions = get_minmax_move(temp_board, MAX_DEPTH, max_player, scores, directions, 0)
+    final_tree = get_minmax_move(root, MAX_DEPTH, max_player, tree)
+    #final_tree.print_nodes(root)
+    max_node = final_tree.get_max_node(root, LOW)
 
-    # UP Parent and all of it's children
-
-
+    return final_tree.get_best_direction(max_node)
 
 #################################################################
 # Minmax Tree Search
 #################################################################
-def get_minmax_move(temp_board, depth, max_player, scores, directions, index):
-    temp_score = scores[index]
-    temp_index = index
-    if depth == 0:
-        scores[index] = calc_total_score(temp_board)
-        return scores, directions
+def get_minmax_move(node, depth, max_player, tree):
+    temp_board = np.array(node.temp_board)
+    temp_board = np.reshape(temp_board, (4, 4))
+
+    if depth == 0 and node.direction != INVALID:
+        node.score = calc_total_score(temp_board)
+        return tree
 
     up_board, changed_up = calc_next_board_input(temp_board, UP)
     down_board, changed_down = calc_next_board_input(temp_board, DOWN)
     right_board, changed_right = calc_next_board_input(temp_board, RIGHT)
     left_board, changed_left = calc_next_board_input(temp_board, LEFT)
 
+    up_node = Node(up_board)
+    down_node = Node(down_board)
+    right_node = Node(right_board)
+    left_node = Node(left_board)
+
     if max_player:
         if changed_up:
-            scores[temp_index] = max(temp_score, calc_total_score(up_board))
-            directions[temp_index] = UP
+            up_node.score = max(node.score, calc_total_score(up_board))
+            up_node.direction = UP
         else:
-            scores[temp_index] = -100000000000
-            directions[temp_index] = INVALID
-        scores, directions = get_minmax_move(up_board, depth - 1, False, scores, directions, temp_index + 4)
-        if changed_down:
-            scores[temp_index+1] = max(temp_score, calc_total_score(down_board))
-            directions[temp_index+1] = DOWN
-        else:
-            scores[temp_index+1] = -100000000000
-            directions[temp_index+1] = INVALID
-        scores, directions = get_minmax_move(down_board, depth - 1, False, scores, directions, temp_index + 5)
-        if changed_left:
-            scores[temp_index+2] = max(temp_score, calc_total_score(left_board))
-            directions[temp_index+2] = LEFT
-        else:
-            scores[temp_index+2] = -100000000000
-            directions[temp_index+2] = INVALID
-        scores, directions = get_minmax_move(left_board, depth - 1, False, scores, directions, temp_index + 6)
-        if changed_right:
-            scores[temp_index+3] = max(temp_score, calc_total_score(right_board))
-            directions[temp_index+3] = RIGHT
-        else:
-            scores[temp_index+3] = -100000000000
-            directions[temp_index+3] = INVALID
-        scores, directions = get_minmax_move(right_board, depth - 1, False, scores, directions, temp_index + 7)
+            up_node.score = LOW
+            up_node.direction = INVALID
+        tree.insert_node(node, up_board, "UP", up_node.direction, up_node.score)
+        tree = get_minmax_move(tree.find_node(node, up_board), depth - 1, False, tree)
 
-    return scores, directions
+        if changed_down:
+            down_node.score = max(node.score, calc_total_score(down_board))
+            down_node.direction = DOWN
+        else:
+            down_node.score = LOW
+            down_node.direction = INVALID
+        tree.insert_node(node, down_board, "DOWN", down_node.direction, down_node.score)
+        #print("Node: " + tree.find_node(node, down_board).name + " did it change? " + str(changed_down) + str(tree.find_node(node, down_board).score))
+        #print("Node: " + tree.find_node(node, down_board).name + " Score: " + str(tree.find_node(node, down_board).score))
+        tree = get_minmax_move(tree.find_node(node, down_board), depth - 1, False, tree)
+
+        if changed_left:
+            left_node.score = max(node.score, calc_total_score(left_board))
+            left_node.direction = LEFT
+        else:
+            left_node.score = LOW
+            left_node.direction = INVALID
+        tree.insert_node(node, left_board, "LEFT", left_node.direction, left_node.score)
+        tree = get_minmax_move(tree.find_node(node, left_board), depth - 1, False, tree)
+
+        if changed_right:
+            right_node.score = max(node.score, calc_total_score(right_board))
+            right_node.direction = RIGHT
+        else:
+            right_node.score = LOW
+            right_node.direction = INVALID
+        tree.insert_node(node, right_board, "RIGHT", right_node.direction, right_node.score)
+        tree = get_minmax_move(tree.find_node(node, right_board), depth - 1, False, tree)
+
+    # If computer's turn
+    # else:
+    #     blanks = []
+    #     score_boards = []
+    #     for i in node.temp_board:
+    #         blanks.append(i)
+    #
+    #
+    return tree
+
 
 #################################################################
 # Wrapper for Main
