@@ -10,34 +10,35 @@ NUM_TILES = 16
 #tile0_coord = (486.04, 417.77, 590.39, 316.37)
 #tile0_coord = (486, 419, 589, 316)
 tile0_coord = (966, 616 + 10, 1189, 849)
-tile1_coord = (966+GAP*1, 616+GAP*0, 1189+GAP*1, 849+GAP*0)
-tile2_coord = (966+GAP*2, 616+GAP*0, 1189+GAP*2, 849+GAP*0)
-tile3_coord = (966+GAP*3, 616+GAP*0 + 10, 1189+GAP*3, 849+GAP*0)
-tile4_coord = (966+GAP*0, 616+GAP*1, 1189+GAP*0, 849+GAP*1)
-tile5_coord = (966+GAP*1, 616+GAP*1, 1189+GAP*1, 849+GAP*1)
-tile6_coord = (966+GAP*2, 616+GAP*1, 1189+GAP*2, 849+GAP*1)
-tile7_coord = (966+GAP*3, 616+GAP*1, 1189+GAP*3, 849+GAP*1)
-tile8_coord = (966+GAP*0, 616+GAP*2, 1189+GAP*0, 849+GAP*2)
-tile9_coord = (966+GAP*1, 616+GAP*2, 1189+GAP*1, 849+GAP*2)
-tile10_coord = (966+GAP*2, 616+GAP*2, 1189+GAP*2, 849+GAP*2)
+tile1_coord = (966+GAP*1 + 3, 616+GAP*0 + 10, 1189+GAP*1, 849+GAP*0)
+tile2_coord = (966+GAP*2 + 5, 616+GAP*0 + 10, 1189+GAP*2, 849+GAP*0)
+tile3_coord = (966+GAP*3 + 5, 616+GAP*0 + 10, 1189+GAP*3, 849+GAP*0)
+tile4_coord = (966+GAP*0, 616+GAP*1 + 10, 1189+GAP*0, 849+GAP*1)
+tile5_coord = (966+GAP*1 + 3, 616+GAP*1 + 10, 1189+GAP*1, 849+GAP*1)
+tile6_coord = (966+GAP*2 + 3, 616+GAP*1 + 10, 1189+GAP*2, 849+GAP*1)
+tile7_coord = (966+GAP*3 + 5, 616+GAP*1 + 10, 1189+GAP*3, 849+GAP*1)
+tile8_coord = (966+GAP*0, 616+GAP*2 + 10, 1189+GAP*0, 849+GAP*2)
+tile9_coord = (966+GAP*1 + 3, 616+GAP*2 + 10, 1189+GAP*1, 849+GAP*2)
+tile10_coord = (966+GAP*2 + 5, 616+GAP*2 + 10, 1189+GAP*2, 849+GAP*2)
 tile11_coord = (966+GAP*3 + 10, 616+GAP*2 + 10, 1189+GAP*3, 849+GAP*2)
-tile12_coord = (966+GAP*0, 616+GAP*3, 1189+GAP*0, 849+GAP*3)
-tile13_coord = (966+GAP*1, 616+GAP*3, 1189+GAP*1, 849+GAP*3)
-tile14_coord = (966+GAP*2, 616+GAP*3, 1189+GAP*2, 849+GAP*3)
+tile12_coord = (966+GAP*0, 616+GAP*3 + 13, 1189+GAP*0, 849+GAP*3)
+tile13_coord = (966+GAP*1, 616+GAP*3 + 13, 1189+GAP*1, 849+GAP*3)
+tile14_coord = (966+GAP*2 + 5, 616+GAP*3 + 13, 1189+GAP*2, 849+GAP*3)
 tile15_coord = (966+GAP*3 + 10, 616+GAP*3 + 20, 1189+GAP*3, 849+GAP*3)
 
 coord_list = [tile0_coord, tile1_coord, tile2_coord, tile3_coord,
               tile4_coord, tile5_coord, tile6_coord, tile7_coord,
               tile8_coord, tile9_coord, tile10_coord, tile11_coord,
               tile12_coord, tile13_coord, tile14_coord, tile15_coord]
-board = [0]*16
+board = ["-"]*16
 # board = ['-', '-', '2', '2',
 #              '-', '-', '-', '-',
 #              '-', '8', '32', '8',
 #              '2', '8', '4', '2']
 
-MAX_DEPTH = 1
+MAX_DEPTH = 5
 LOW = -100000000000
+HIGH = 100000000000
 #################################################################
 # Color of each tile
 #################################################################
@@ -52,7 +53,7 @@ c_128 = 205
 c_256 = 202
 c_512 = 198
 c_1024 = 195
-c_2048 = 189
+c_2048 = 192
 
 
 #################################################################

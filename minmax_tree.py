@@ -24,7 +24,7 @@ class MinmaxTree:
         temp_node = Node(temp_board)
         temp_node.parent = node
         temp_node.direction = direction
-        temp_node.score = score
+        temp_node.score = max( score, node.score )
         temp_node.name = node.name + "_" + name
         node.children.append(temp_node)
 
@@ -50,8 +50,8 @@ class MinmaxTree:
                 if n.score > max_score:
                     max_score = n.score
                     max_node = n
-                if n.direction != INVALID and len(n.children) > 0:
-                    max_node = self.get_max_node(n, max_score, max_node)
+                # if n.direction != INVALID and len(n.children) > 0:
+                #     max_node = self.get_max_node(n, max_score, max_node)
         return max_node
 
     def get_best_direction(self, max_node):

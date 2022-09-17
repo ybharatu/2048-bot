@@ -30,9 +30,9 @@ def main():
     #################################################################
     # Lets me switch screens to 2048
     #################################################################
-    time.sleep(1)
-    valid = 0
-    while not valid:
+    time.sleep(5)
+    valid = 1
+    while valid:
 
         #################################################################
         # Gets a screenshot and populates the values of the board
@@ -53,7 +53,13 @@ def main():
         #################################################################
         make_move(direction)
 
-        time.sleep(.5)
+        valid = 1
+
+        screencap_board()
+
+        print_board()
+
+        #time.sleep(.5)
 
 
         #valid_dirs_weights = [1, 40, 40, 19]
@@ -152,21 +158,20 @@ def get_values_by_color(screenshot):
     for i in range(NUM_TILES):
         im_list.append(screenshot.crop(coord_list[i]))
         pix = im_list[i].load()
-        value = pix[40,40]
+        pix = np.array(im_list[i])
+        hist = {}
 # https://www.boxentriq.com/code-breaking/pixel-values-extractor
-        # if i == 15:
-        #     print("Tile 15:")
-        #     print(value)
-        #     im_list[i].show()
-        # if i == 11:
-        #     print("Tile 11:")
-        #     print(value)
-        #     im_list[i].show()
-        # if i == 7:
-        #     print("Tile 7:")
-        #     print(value)
-        #     im_list[i].show()
-
+#         if i == 13:
+#             print("Tile 13:")
+#             print(pix[40,40])
+#             im_list[i].show()
+        for x in range(pix.shape[0]):
+            for y in range(pix.shape[1]):
+                if pix[x][y] in hist.keys():
+                    hist[pix[x][y]] += 1
+                else:
+                    hist[pix[x][y]] = 1
+        value = max(hist, key=hist.get)  # Find pixel_val whose count is maximum
 
         if value == c_blank:
             board[i] = "-"
@@ -192,10 +197,6 @@ def get_values_by_color(screenshot):
             board[i] = "1024"
         elif value == c_2048:
             board[i] = "2048"
-        # elif c_1024 - 2 <= pix[30, 30] <= c_1024 + 2:
-        #     board[i] = "1024"
-        # elif c_2048 - 2 <= pix[30, 30] <= c_2048 + 2:
-        #     board[i] = "2048"
         else:
             board[i] = "-"
             print("Invalid value!")
@@ -349,7 +350,7 @@ def calc_max_value_score(temp_board):
     max_tile = max_value(temp_board)
     new_board = np.reshape(temp_board, (16,))
 
-    if new_board[15] == str(max_tile):
+    if new_board[15] == str(max_tile) or new_board[12] == str(max_tile):
         return 1000000
     else:
         return -1000000
@@ -407,22 +408,16 @@ def calc_monotonicity_score(temp_board):
         for j in range(4):
             if temp_board[i][j] == "-" or j == 3 or temp_board[i][j+1] == "-":
                 continue
-            # if first row or third row
-            if i == 0 or i == 2:
-                #if int(temp_board[i][j]) > int(temp_board[i][j+1]):
-                row_score += int(temp_board[i][j]) - int(temp_board[i][j+1])
-            # if second or last row
-            if i == 1 or i == 3:
-                #if int(temp_board[i][j+1]) > int(temp_board[i][j]):
-                row_score += int(temp_board[i][j+1]) - int(temp_board[i][j])
+            row_score -= abs(int(temp_board[i][j]) - int(temp_board[i][j+1]))
+
     #################################################################
     # Checks monotonicity for Columns
     #################################################################
-    # for j in range(4):
-    #     for i in range(4):
-    #         if temp_board[i][j] == "-" or i == 3 or temp_board[i+1][j] == "-":
-    #             continue
-    #         col_score += int(temp_board[i+1][j]) - int(temp_board[i][j])
+    for j in range(4):
+        for i in range(4):
+            if temp_board[i][j] == "-" or i == 3 or temp_board[i+1][j] == "-":
+                continue
+            col_score -= abs(int(temp_board[i+1][j]) - int(temp_board[i][j]))
 
     return row_score * 100 + col_score * 100
 
@@ -471,13 +466,10 @@ def calc_smoothness_score(temp_board):
 def calc_total_score(temp_board):
 
     total_score = calc_tile_heuristic_score(temp_board)
-    #print("Tile score: " + str(calc_tile_heuristic_score(temp_board)))
     total_score += calc_max_value_score(temp_board)
-    #print("Max Value Score: " + str(calc_max_value_score(temp_board)))
     total_score += calc_empty_tile_score(temp_board)
-    total_score += calc_monotonicity_score(temp_board)
+    #total_score += calc_monotonicity_score(temp_board)
     total_score += calc_smoothness_score(temp_board)
-    #print("Smoothness Score: " + str(calc_smoothness_score(temp_board)))
 
     return total_score
 
@@ -624,8 +616,12 @@ def get_minmax_move(node, depth, max_player, tree):
     temp_board = np.array(node.temp_board)
     temp_board = np.reshape(temp_board, (4, 4))
 
+    #print("get_minmax_move DEPTH: " + str(depth))
+
     if depth == 0 and node.direction != INVALID:
         node.score = calc_total_score(temp_board)
+        return tree
+    if depth == 0:
         return tree
 
     up_board, changed_up = calc_next_board_input(temp_board, UP)
@@ -676,15 +672,52 @@ def get_minmax_move(node, depth, max_player, tree):
             right_node.direction = INVALID
         tree.insert_node(node, right_board, "RIGHT", right_node.direction, right_node.score)
         tree = get_minmax_move(tree.find_node(node, right_board), depth - 1, False, tree)
-
     # If computer's turn
-    # else:
-    #     blanks = []
-    #     score_boards = []
-    #     for i in node.temp_board:
-    #         blanks.append(i)
-    #
-    #
+    else:
+        blanks = []
+        score_boards = []
+        #print(temp_board)
+        temp_board = np.reshape(temp_board, (16, ))
+        #print(temp_board)
+        min_score = HIGH
+        final_board = np.array(node.temp_board)
+        #print(final_board)
+
+        for i in range(16):
+            if temp_board[i] == "-":
+                blanks.append(i)
+
+        for i in blanks:
+            temp_board[i] = "2"
+            temp_board = np.reshape(temp_board, (4, 4))
+            score_boards.append(temp_board)
+            new_score = calc_total_score(temp_board)
+            if min_score > new_score:
+                min_score = new_score
+                final_board = np.reshape(temp_board, (4, 4))
+            temp_board = np.reshape(temp_board, (16, ))
+            temp_board[i] = "-"
+
+        for i in blanks:
+            temp_board[i] = "4"
+            temp_board = np.reshape(temp_board, (4, 4))
+            score_boards.append(temp_board)
+            new_score = calc_total_score(temp_board)
+            if min_score > new_score:
+                min_score = new_score
+                final_board = temp_board
+            temp_board = np.reshape(temp_board, (16, ))
+            temp_board[i] = "-"
+
+        final_board = np.reshape(final_board, (4, 4))
+        comp_node = Node(final_board)
+        comp_node.score = calc_total_score(final_board)
+        tree.insert_node(node, final_board.tolist(), "COMPUTER", INVALID, comp_node.score)
+        #print(final_board.tolist())
+        #print(node.temp_board)
+        tree = get_minmax_move(tree.find_node(node, final_board.tolist()), depth, True, tree)
+
+
     return tree
 
 
